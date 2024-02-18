@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import { useDatabase } from "./services/hooks.js";
 import registerRouter from "./routes/registerRoute.js";
+import loginRouter from "./routes/loginRoute.js";
 
 dotenv.config();
 const app = express();
@@ -16,3 +17,4 @@ app.use(cors());
 useDatabase(process.env.MONGO_URL);
 
 app.use("/auth", registerRouter);
+app.use("/auth", loginRouter); // Use the login route
