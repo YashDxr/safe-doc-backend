@@ -1,4 +1,4 @@
-import mongoose  from "mongoose";
+import mongoose from "mongoose";
 
 const credentialSchema = new mongoose.Schema(
   {
@@ -16,6 +16,10 @@ const credentialSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    verified: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );
@@ -23,5 +27,3 @@ const credentialSchema = new mongoose.Schema(
 const Credential = mongoose.model("Cred", credentialSchema);
 
 export default Credential;
-
-
