@@ -37,11 +37,7 @@ export const login = async (req, res) => {
       return res.status(401).json({ error: "Invalid Credentials" });
     }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET_KEY);
-    res
-      .cookie("access_token", token, { httpOnly: true })
-      .status(200)
-      .json({ message: "Login successful", user });
+    res.status(200).json({ message: "Login successful", user });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -50,11 +46,7 @@ export const login = async (req, res) => {
 export const googleAuth = async (req, res) => {
   const user = await Credential.findOne({ email: req.body.email });
   if (user) {
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET_KEY);
-    res
-      .cookie("access_token", token, { httpOnly: true })
-      .status(200)
-      .json(user);
+    res.status(200).json(user);
   } else {
     const createUsername =
       req.body.name.split(" ").join("").toLowerCase() +
@@ -70,11 +62,7 @@ export const googleAuth = async (req, res) => {
     });
 
     await newUser.save();
-    const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET_KEY);
-    res
-      .cookie("acccess_token", token, { httpOnly: true })
-      .status(200)
-      .json(newUser);
+    res.status(200).json(newUser);
   }
 };
 
@@ -108,12 +96,3 @@ export const googleAuth = async (req, res) => {
 //       .json(newUser);
 //   }
 // };
-
-export const logout = (req, res) => {
-  try {
-    res.clearCookie("access_token");
-    res.status(200).json("Logged out successfully");
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
