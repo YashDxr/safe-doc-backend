@@ -1,6 +1,5 @@
 import Credential from "../models/userSchema.js";
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 
 export const signup = async (req, res) => {
   const saltRounds = 10;
@@ -54,7 +53,7 @@ export const googleAuth = async (req, res) => {
     const createPassword =
       Math.random().toString(36).slice(-8) +
       Math.random().toString(36).slice(-8);
-    const hashedPassword = await bcrypt.hashSync(createPassword, 10);
+    const hashedPassword = bcrypt.hashSync(createPassword, 10);
     const newUser = new Credential({
       username: createUsername,
       email: req.body.email,
@@ -65,34 +64,3 @@ export const googleAuth = async (req, res) => {
     res.status(200).json(newUser);
   }
 };
-
-// export const githubAuth = async (req, res) => {
-//   const user = await Credential.findOne({ email: req.body.email });
-//   if (user) {
-//     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET_KEY);
-//     res
-//       .cookie("access_token", token, { httpOnly: true })
-//       .status(200)
-//       .json(user);
-//   } else {
-//     const createUsername =
-//       req.body.name.split(" ").join("").toLowerCase() +
-//       Math.random().toString(10).slice(-4);
-//     const createPassword =
-//       Math.random().toString(36).slice(-8) +
-//       Math.random().toString(36).slice(-8);
-//     const hashedPassword = await bcrypt.hashSync(createPassword, 10);
-//     const newUser = new Credential({
-//       username: createUsername,
-//       email: req.body.email,
-//       password: hashedPassword,
-//     });
-
-//     await newUser.save();
-//     const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET_KEY);
-//     res
-//       .cookie("acccess_token", token, { httpOnly: true })
-//       .status(200)
-//       .json(newUser);
-//   }
-// };

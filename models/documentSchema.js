@@ -1,21 +1,33 @@
 import mongoose from "mongoose";
 
-const DocumentSchema = new mongoose.Schema({
+const FileSchema = new mongoose.Schema({
   filename: {
     type: String,
     required: true,
   },
-  pdfFiles: {
-    type: [
-      {
-        data: Buffer,
-        contentType: String,
-        iv: String,
-      },
-    ],
+  data: {
+    type: Buffer,
+    required: true,
+  },
+  contentType: {
+    type: String,
+    required: true,
+  },
+  iv: {
+    type: String,
+    required: true,
   },
 });
 
-const Document = mongoose.model("Document", DocumentSchema);
+const UserDocSchema = new mongoose.Schema({
+  username: {
+    type: String,
+    required: true,
+    unique: true,
+  },
+  files: [FileSchema],
+});
 
-export default Document;
+const UserDoc = mongoose.model("UserDoc", UserDocSchema);
+
+export default UserDoc;

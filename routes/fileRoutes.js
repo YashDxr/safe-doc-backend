@@ -3,13 +3,15 @@ import express from "express";
 import {
   decryptFile,
   encryptFile,
-  getFile,
+  getFiles,
+  getKey,
 } from "../controllers/file-controller.js";
 
 const router = express.Router();
 
 router.post("/encrypt", encryptFile);
 router.post("/decrypt", decryptFile);
-router.get("/download/:filename", getFile);
+router.get("/getFiles/:username", getFiles);
+router.post("/getKey", getKey);
 
 export default router;
