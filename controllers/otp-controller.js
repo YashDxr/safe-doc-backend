@@ -102,8 +102,8 @@ const transporter = createTransport({
     rejectUnauthorized: false,
   },
   auth: {
-    user: "yashsingh05102002@outlook.com",
-    pass: "705224outlook",
+    user: "email",
+    pass: "password",
   },
 });
 
