@@ -5,6 +5,8 @@ import multer from "multer";
 import { useDatabase } from "./hooks/hooks.js";
 import authRouter from "./routes/authRoutes.js";
 import fileRouter from "./routes/fileRoutes.js";
+import otpRouter from "./routes/otpRoutes.js"
+import keyRouter from "./routes/keyRoutes.js"
 
 dotenv.config();
 const app = express();
@@ -28,6 +30,8 @@ const upload = multer({ storage: storage });
 
 app.use("/auth", authRouter);
 app.use("/files", upload.single("file"), fileRouter);
+app.use("/private", otpRouter);
+app.use("/store", keyRouter);
 
 app.listen(3000, () => {
   console.log(`Server running on port 3000`);

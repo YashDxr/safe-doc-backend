@@ -1,13 +1,15 @@
 import crypto from "crypto";
 import fs from "fs/promises";
-import Document from "../models/documentSchema.js";
+import UserDoc from "../models/documentSchema.js";
+import KeyStore from "../models/keySchema.js";
+import CryptoJS from "crypto-js";
 
 const algorithm = "aes-256-cbc";
 const IV_LENGTH = 16;
 
 export const encryptFile = async (req, res) => {
   try {
-    const { name, aesKey } = req.body;
+    const { username, filename, aesKey } = req.body;
     const file = req.file;
     console.log("File: ", file);
     const aesKeyArray = Uint8Array.from(atob(aesKey), (c) => c.charCodeAt(0));
@@ -28,16 +30,39 @@ export const encryptFile = async (req, res) => {
       cipher.final(),
     ]);
 
-    // Save the encrypted file to MongoDB
-    await Document.create({
-      filename: name,
-      pdfFiles: {
+    let user = await UserDoc.findOne({ username });
+
+    if (!user) {
+      user = new UserDoc({ username });
+    }
+
+    // Find existing file with the same filename (if any) and update or add a new file entry
+    const existingFileIndex = user.files.findIndex(
+      (file) => file.filename === filename
+    );
+
+    if (existingFileIndex !== -1) {
+      // Update existing file data
+      user.files[existingFileIndex] = {
+        filename,
         data: encryptedData,
         contentType: file.mimetype,
         iv: iv.toString("hex"),
-      },
-    }).then(console.log("Saved Document"));
+      };
+    } else {
+      // Add new file entry
+      user.files.push({
+        filename,
+        data: encryptedData,
+        contentType: file.mimetype,
+        iv: iv.toString("hex"),
+      });
+    }
 
+    await user.save();
+    console.log(`Encrypted file '${filename}' saved for user '${username}'`);
+
+    // Set response headers and send the encrypted data as response
     res.setHeader("Content-Type", file.mimetype);
     res.send(encryptedData);
 
@@ -58,34 +83,38 @@ export const encryptFile = async (req, res) => {
 
 export const decryptFile = async (req, res) => {
   try {
-    const { name, aesKey } = req.body;
-    console.log(req.body);
-    // Retrieve the encrypted document from MongoDB based on filename
-    const document = await Document.findOne({ filename: name });
-    if (!document) {
-      return res.status(404).json({ error: "Document not found" });
+    const { username, name, aesKey } = req.body;
+
+    // Find the user document by username
+    const userDoc = await UserDoc.findOne({ username });
+
+    if (!userDoc) {
+      return res.status(404).json({ error: "User not found" });
     }
-    console.log(document);
-    const pdfFile = document.pdfFiles[0];
-    const encryptedData = pdfFile.data;
-    const contentType = pdfFile.contentType;
-    const ivHex = pdfFile.iv;
+
+    // Find the file entry with the specified filename
+    const fileEntry = userDoc.files.find((file) => file.filename === name);
+
+    if (!fileEntry) {
+      return res.status(404).json({ error: "File not found for the user" });
+    }
+
+    const encryptedData = fileEntry.data;
+    const PDFcontentType = fileEntry.contentType;
+    const ivHex = fileEntry.iv;
 
     const aesKeyArray = Uint8Array.from(atob(aesKey), (c) => c.charCodeAt(0));
-    console.log("Key size: ", aesKeyArray.length);
+
     const iv = Buffer.from(ivHex, "hex");
 
-    // Create a decipher using the AES algorithm and AES key
     const decipher = crypto.createDecipheriv(algorithm, aesKeyArray, iv);
 
-    // Decrypt the encrypted data
     let decryptedData = Buffer.concat([
       decipher.update(encryptedData),
       decipher.final(),
     ]);
 
-    // Set the response headers and send the decrypted data as response
-    res.setHeader("Content-Type", contentType);
+    res.setHeader("Content-Type", PDFcontentType);
     res.send(decryptedData);
   } catch (error) {
     console.error("Error decrypting and retrieving file:", error);
@@ -93,28 +122,41 @@ export const decryptFile = async (req, res) => {
   }
 };
 
-export const getFile = async (req, res) => {
-  const filename = req.params.filename;
+export const getFiles = async (req, res) => {
+  const username = req.params.username;
+
   try {
-    const document = await Document.findOne({ filename: filename });
-    if (!document || !document.pdfFiles || document.pdfFiles.length === 0) {
-      return res.status(404).json({ error: "File not found" });
-    }
-
-    // Assuming you want the first PDF file in the array
-    const pdfFile = document.pdfFiles[0];
-
-    if (!pdfFile.data || !pdfFile.contentType) {
-      return res.status(404).json({ error: "File data not found" });
-    }
-
-    // Set the Content-Type header
-    res.setHeader("Content-Type", pdfFile.contentType);
-
-    // Send the binary data as response
-    res.send(pdfFile.data.buffer); // Assuming data is a Buffer, adjust accordingly
+    const user = await UserDoc.findOne({ username });
+    // console.log("User: ", user);
+    res.status(200).json({ user });
   } catch (error) {
-    console.error("Error downloading file:", error);
-    res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json("Server Error");
+  }
+};
+
+export const getKey = async (req, res) => {
+  const { username, filename } = req.body;
+  console.log("User: ",username);
+  console.log("File: ",filename);
+
+  try {
+    const keyStore = await KeyStore.findOne({ user: username });
+    if (!keyStore) {
+      return res.status(400).json("No keys found for this user");
+    }
+
+    const fileEntry = keyStore.files.find((file) => file.filename === filename);
+    if (!fileEntry) {
+      return res.status(401).json("No key found for this filename");
+    }
+
+    const decryptedKey = CryptoJS.AES.decrypt(
+      fileEntry.key,
+      process.env.KEY_PASSWORD
+    ).toString(CryptoJS.enc.Utf8);
+
+    res.status(200).json({ key: decryptedKey });
+  } catch (err) {
+    return res.status(500).json("Server Error");
   }
 };
