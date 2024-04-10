@@ -34,7 +34,7 @@ export const generateOTP = async (req, res) => {
 
   try {
     const info = await transporter.sendMail({
-      from: "yashsingh05102002@outlook.com",
+      from: "no-reply-safedoc@outlook.com",
       to: userEmail,
       subject: "Verification Mail For Safe-Doc ✔",
       html: `<!DOCTYPE html>
@@ -95,8 +95,8 @@ export const generateOTP = async (req, res) => {
 const transporter = createTransport({
   service: "Outlook365",
   host: "smtp.office365.com",
-  port: "465",
-  secure: true,
+  port: 587,
+  secure: false,
   tls: {
     ciphers: "SSLv3",
     rejectUnauthorized: false,
