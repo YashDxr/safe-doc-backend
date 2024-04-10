@@ -20,12 +20,24 @@ export const storeKey = async (req, res) => {
       });
     }
 
+    console.log("USERSTORE: ",UserStore);
     // Add the new file entry to the files array
-    UserStore.files.push({
-      filename,
-      key: encryptedKey,
-    });
+    const existingFileIndex = UserStore.files.findIndex(
+      (file) => file.filename === filename
+    );
 
+    console.log("INDEX: ",existingFileIndex);
+    if (existingFileIndex !== -1) {
+      // Update the existing file entry with the new encrypted key
+      UserStore.files[existingFileIndex].key = encryptedKey;
+    } else {
+      // Add a new file entry to the files array
+      console.log("PUSHING");
+      UserStore.files.push({
+        filename,
+        key: encryptedKey,
+      });
+    }
     // Save the updated KeyStore document
     await UserStore.save();
 
