@@ -19,20 +19,16 @@ export const storeKey = async (req, res) => {
         files: [], // Initialize files array
       });
     }
-
-    console.log("USERSTORE: ",UserStore);
     // Add the new file entry to the files array
     const existingFileIndex = UserStore.files.findIndex(
       (file) => file.filename === filename
     );
 
-    console.log("INDEX: ",existingFileIndex);
     if (existingFileIndex !== -1) {
       // Update the existing file entry with the new encrypted key
       UserStore.files[existingFileIndex].key = encryptedKey;
     } else {
       // Add a new file entry to the files array
-      console.log("PUSHING");
       UserStore.files.push({
         filename,
         key: encryptedKey,
@@ -43,32 +39,32 @@ export const storeKey = async (req, res) => {
 
     res.status(200).json("Successfully saved key");
   } catch (error) {
-    return res.status(500).json("Server Error");
+    return res.status(500).json({ error: "Server Error" });
   }
 };
 
 export const getKey = async (req, res) => {
-  const { username, password, filename } = req.body;
+  const { username, filename } = req.body;
 
   try {
     const user = await Credential.findOne({ username });
     if (!user) {
-      return res.status(400).json("No user found");
+      return res.status(400).json({ error: "No user found" });
     }
 
-    const verifyPassword = bcrypt.compareSync(password, user.password);
-    if (!verifyPassword) {
-      return res.status(401).json("Invalid credentials");
-    }
+    // const verifyPassword = bcrypt.compareSync(password, user.password);
+    // if (!verifyPassword) {
+    //   return res.status(401).json({ error: "Invalid credentials" });
+    // }
 
     const keyStore = await KeyStore.findOne({ user: username });
     if (!keyStore) {
-      return res.status(400).json("No keys found for this user");
+      return res.status(400).json({ error: "No keys found for this user" });
     }
 
     const fileEntry = keyStore.files.find((file) => file.filename === filename);
     if (!fileEntry) {
-      return res.status(400).json("No key found for this filename");
+      return res.status(400).json({ error: "No key found for this filename" });
     }
 
     const decryptedKey = CryptoJS.AES.decrypt(

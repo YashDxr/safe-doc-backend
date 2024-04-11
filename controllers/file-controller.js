@@ -11,13 +11,10 @@ export const encryptFile = async (req, res) => {
   try {
     const { username, filename, aesKey } = req.body;
     const file = req.file;
-    console.log("File: ", file);
     const aesKeyArray = Uint8Array.from(atob(aesKey), (c) => c.charCodeAt(0));
-    console.log("Key size: ", aesKeyArray.length);
 
     //File reading
     const fileData = await fs.readFile(file.path);
-    console.log("File data:", fileData);
 
     // Generate a random initialization vector
     const iv = crypto.randomBytes(IV_LENGTH);
@@ -60,7 +57,6 @@ export const encryptFile = async (req, res) => {
     }
 
     await user.save();
-    console.log(`Encrypted file '${filename}' saved for user '${username}'`);
 
     // Set response headers and send the encrypted data as response
     res.setHeader("Content-Type", file.mimetype);
@@ -69,7 +65,6 @@ export const encryptFile = async (req, res) => {
     if (file?.path) {
       try {
         await fs.unlink(file.path); // Delete the temporary file
-        console.log("Temporary file deleted successfully");
       } catch (err) {
         console.error("Error deleting temporary file:", err);
         // Handle the error (e.g., log, ignore, or propagate)
@@ -122,12 +117,53 @@ export const decryptFile = async (req, res) => {
   }
 };
 
+export const downloadDecryptFile = async (req, res) => {
+  try {
+    const { username, name } = req.params;
+    const { aesKey } = req.body;
+
+    // Find the user document by username
+    const userDoc = await UserDoc.findOne({ username });
+
+    if (!userDoc) {
+      return res.status(402).json({ error: "Invalid Link!" });
+    }
+
+    // Find the file entry with the specified filename
+    const fileEntry = userDoc.files.find((file) => file.filename === name);
+
+    if (!fileEntry) {
+      return res.status(403).json({ error: "Invalid Link!" });
+    }
+
+    const encryptedData = fileEntry.data;
+    const PDFcontentType = fileEntry.contentType;
+    const ivHex = fileEntry.iv;
+
+    const aesKeyArray = Uint8Array.from(atob(aesKey), (c) => c.charCodeAt(0));
+
+    const iv = Buffer.from(ivHex, "hex");
+
+    const decipher = crypto.createDecipheriv(algorithm, aesKeyArray, iv);
+
+    let decryptedData = Buffer.concat([
+      decipher.update(encryptedData),
+      decipher.final(),
+    ]);
+
+    res.setHeader("Content-Type", PDFcontentType);
+    res.send(decryptedData);
+  } catch (error) {
+    console.error("Error decrypting and retrieving file:", error);
+    res.status(500).json({ error: "Invalid Key" });
+  }
+};
+
 export const getFiles = async (req, res) => {
   const username = req.params.username;
 
   try {
     const user = await UserDoc.findOne({ username });
-    // console.log("User: ", user);
     res.status(200).json({ user });
   } catch (error) {
     return res.status(500).json("Server Error");
@@ -136,8 +172,6 @@ export const getFiles = async (req, res) => {
 
 export const getKey = async (req, res) => {
   const { username, filename } = req.body;
-  console.log("User: ",username);
-  console.log("File: ",filename);
 
   try {
     const keyStore = await KeyStore.findOne({ user: username });
