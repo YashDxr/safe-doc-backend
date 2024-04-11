@@ -10,17 +10,16 @@ export const verifyUser = async (req, res) => {
     const user = await Credential.findOne({ username: username });
 
     if (!user) {
-      return res.status(404).json("User not found!");
+      return res.status(404).json({ error: "User not found!" });
     }
     const verifyPassword = bcrypt.compareSync(password, user.password);
     if (!verifyPassword) {
-      console.log("Wrong password");
-      return res.status(402).json("Invalid Password");
+      return res.status(402).json({ error: "Invalid Password" });
     }
 
     return res.status(200).json(user.email);
   } catch (error) {
-    console.log("Server Error", error);
+    return res.status(500).json({ error: "Server Error" });
   }
 };
 
@@ -75,7 +74,6 @@ export const generateOTP = async (req, res) => {
       </html>`,
     });
 
-    console.log("Mailid: ", info.messageId);
     const hashedOTP = bcrypt.hashSync(otp, 10);
     const newOtp = new OTP({
       email: userEmail,
@@ -84,11 +82,9 @@ export const generateOTP = async (req, res) => {
       expiresAt: Date.now() + 600000,
     });
     await newOtp.save();
-    console.log(userEmail);
     return res.status(200).json("OTP sent successfully");
   } catch (err) {
-    console.log(err);
-    return res.status(500).json("Server Error");
+    return res.status(500).json({ error: "Server Error" });
   }
 };
 
@@ -112,14 +108,13 @@ export const verifyOtp = async (req, res) => {
 
   try {
     const user = await Credential.findOne({ username: username });
-    // console.log("User: ",user);
     if (!user) {
-      return res.status(404).json("User not found!");
+      return res.status(404).json({ error: "User not found!" });
     }
     const emailid = user.email;
     const data = await OTP.findOne({ email: emailid });
     if (!data) {
-      return res.status(404).json("Otp not found");
+      return res.status(404).json({ error: "Otp not found. Try again!" });
     }
     if (data.expiresAt < Date.now()) {
       return res.status(401).json({ again: true });
@@ -127,10 +122,10 @@ export const verifyOtp = async (req, res) => {
 
     const verification = bcrypt.compareSync(otp, data.otp);
     if (!verification) {
-      return res.status(402).json("Invalid Otp");
+      return res.status(402).json({ error: "Invalid Otp" });
     }
     return res.status(200).json("Success");
   } catch (error) {
-    return res.status(500).json("Server error", error);
+    return res.status(500).json({ error: "Server error" });
   }
 };
