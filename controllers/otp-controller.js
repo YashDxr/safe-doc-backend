@@ -98,7 +98,7 @@ const transporter = createTransport({
     rejectUnauthorized: false,
   },
   auth: {
-    user: "username",
+    user: "email",
     pass: "password",
   },
 });
