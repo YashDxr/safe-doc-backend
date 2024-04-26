@@ -25,12 +25,14 @@ export const verifyUser = async (req, res) => {
 
 export const generateOTP = async (req, res) => {
   const userEmail = req.params.email;
+  console.log(userEmail);
   const checkOtp = await OTP.find({ email: userEmail });
+  console.log(checkOtp);
   if (checkOtp.length > 0) {
     await OTP.deleteMany({ email: userEmail });
   }
   const otp = generate(6, { upperCaseAlphabets: false, specialChars: false });
-
+  console.log(otp);
   try {
     const info = await transporter.sendMail({
       from: "no-reply-safedoc@outlook.com",
@@ -73,8 +75,9 @@ export const generateOTP = async (req, res) => {
       
       </html>`,
     });
-
+    console.log(info.messageId);
     const hashedOTP = bcrypt.hashSync(otp, 10);
+    console.log(hashedOTP);
     const newOtp = new OTP({
       email: userEmail,
       otp: hashedOTP,
@@ -82,6 +85,7 @@ export const generateOTP = async (req, res) => {
       expiresAt: Date.now() + 600000,
     });
     await newOtp.save();
+    console.log("End");
     return res.status(200).json("OTP sent successfully");
   } catch (err) {
     return res.status(500).json({ error: "Server Error" });
@@ -98,8 +102,8 @@ const transporter = createTransport({
     rejectUnauthorized: false,
   },
   auth: {
-    user: "email",
-    pass: "password",
+    user: "no-reply-safedoc@outlook.com",
+    pass: "705224@Dit",
   },
 });
 
